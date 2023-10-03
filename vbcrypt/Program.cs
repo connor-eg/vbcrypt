@@ -120,7 +120,8 @@ internal class Program
             {
                 using FileStream outStream = File.OpenWrite($"{file}.vbcrypt");
                 using CryptoStream cStream = new CryptoStream(outStream, aes.CreateEncryptor(), CryptoStreamMode.Write);
-                outStream.Write(aes.IV);
+                outStream.Write(aes.IV, 0, 16);
+                outStream.Flush();
                 inStream.CopyTo(cStream);
             }
             Console.WriteLine("done.");
@@ -144,6 +145,7 @@ internal class Program
             using (FileStream inStream = File.OpenRead(file))
             {
                 inStream.Read(aes.IV, 0, 16);
+                inStream.Seek(16, SeekOrigin.Begin);
                 using FileStream outStream = File.OpenWrite(outFileName);
                 using CryptoStream cStream = new CryptoStream(outStream, aes.CreateDecryptor(), CryptoStreamMode.Write);
                 inStream.CopyTo(cStream);
