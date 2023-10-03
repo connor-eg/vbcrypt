@@ -40,8 +40,8 @@ internal class Program
         aes.Key = sha.ComputeHash(Encoding.ASCII.GetBytes(phrase));
 
         // Now it's time to do the thing with the stuff.
-        if (runMode == "e") Encrypt(fileNames);
-        if (runMode == "d") Decrypt(fileNames);
+        if (runMode == "e") StreamEncrypt(fileNames);
+        if (runMode == "d") StreamDecrypt(fileNames);
 
         aes.Clear();
 
@@ -97,6 +97,56 @@ internal class Program
                 Console.WriteLine();
                 Console.WriteLine(e.ToString());
                 continue;
+            }
+            Console.WriteLine("done.");
+        }
+    }
+    
+    private static void StreamEncrypt(string[] files)
+    {
+        foreach(string file in files)
+        {
+            if (!File.Exists(file))
+            {
+                Console.WriteLine($"File {file} does not exist!");
+                continue;
+            }
+
+            Console.Write($"Processing {file}... ");
+
+            aes.GenerateIV();
+
+            using (FileStream inStream = File.OpenRead(file))
+            {
+                using FileStream outStream = File.OpenWrite($"{file}.vbcrypt");
+                using CryptoStream cStream = new CryptoStream(outStream, aes.CreateEncryptor(), CryptoStreamMode.Write);
+                outStream.Write(aes.IV);
+                inStream.CopyTo(cStream);
+            }
+            Console.WriteLine("done.");
+        }
+    }
+
+    private static void StreamDecrypt(string[] files)
+    {
+        foreach (string file in files)
+        {
+            if (!File.Exists(file))
+            {
+                Console.WriteLine($"File {file} does not exist!");
+                continue;
+            }
+
+            Console.Write($"Processing {file}... ");
+            string outFileName = file.EndsWith(".vbcrypt") ? $"{file[..^8]}" : $"{file}.decrypted";
+            if (outFileName.EndsWith(".decrypted")) Console.Write("remember to remove '.decrypted' from the resulting file... ");
+
+            using (FileStream inStream = File.OpenRead(file))
+            {
+                inStream.Read(aes.IV, 0, 16);
+                using FileStream outStream = File.OpenWrite(outFileName);
+                using CryptoStream cStream = new CryptoStream(outStream, aes.CreateDecryptor(), CryptoStreamMode.Write);
+                inStream.CopyTo(cStream);
             }
             Console.WriteLine("done.");
         }
