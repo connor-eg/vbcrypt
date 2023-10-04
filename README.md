@@ -10,4 +10,4 @@ If you do want to actually encrypt your files, consider looking up anyone else's
 
 # Known issues
 ### (as if anyone else is reading this lmao)
-This currently reads entire files to memory before processing them. While that is fast for small files, it means that the largest file you could encrypt is limited by the .NET runtime, the maximum size of an array in C#, and your computer's RAM. The current plan is to fix this by making it use a file stream instead, which s h o u l d make it possible to read/encrypt/decrypt files of arbitrary size.
+This garbles the first 16 bytes of output when decrypting files. No idea why. It now uses a stream to read the files tho so that's a vibe.
