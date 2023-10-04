@@ -40,75 +40,22 @@ internal class Program
         aes.Key = sha.ComputeHash(Encoding.ASCII.GetBytes(phrase));
 
         // Now it's time to do the thing with the stuff.
-        if (runMode == "e") StreamEncrypt(fileNames);
-        if (runMode == "d") StreamDecrypt(fileNames);
+        if (runMode == "e") Encrypt(fileNames);
+        if (runMode == "d") Decrypt(fileNames);
 
         aes.Clear();
 
         Console.WriteLine("Done.");
         
     }
-
-    private static void Encrypt(string[] files)
-    {
-        foreach (string file in files)
-        {
-            Console.Write($"Processing {file}... ");
-            byte[] buf = File.ReadAllBytes(file);
-            try
-            {
-                aes.GenerateIV();
-                byte[] encr = aes.EncryptCbc(buf, aes.IV);
-                using (FileStream output = File.OpenWrite($"{file}.vbcrypt"))
-                {
-                    output.Write(aes.IV); output.Write(encr);
-                }
-
-            } catch (Exception e)
-            {
-                Console.WriteLine();
-                Console.WriteLine(e.ToString());
-                continue;
-            }
-            Console.WriteLine("done.");
-        }
-    }
-
-    private static void Decrypt(string[] files)
-    {
-        foreach (string file in files)
-        {
-            Console.Write($"Processing {file}... ");
-            byte[]? buf = File.ReadAllBytes(file);
-            byte[] IV = buf[..16];
-            byte[] content = buf[16..];
-            buf = null;
-            try
-            {
-                byte[] decr = aes.DecryptCbc(content, IV);
-                string outFileName = file.EndsWith(".vbcrypt") ? $"{file[..^8]}" : $"{file}.decrypted";
-                using (FileStream output = File.OpenWrite(outFileName))
-                {
-                    output.Write(decr);
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine();
-                Console.WriteLine(e.ToString());
-                continue;
-            }
-            Console.WriteLine("done.");
-        }
-    }
     
-    private static void StreamEncrypt(string[] files)
+    private static void Encrypt(string[] files)
     {
         foreach(string file in files)
         {
             if (!File.Exists(file))
             {
-                Console.WriteLine($"File {file} does not exist!");
+                Console.WriteLine($"Cannot find file {file}");
                 continue;
             }
 
@@ -123,18 +70,20 @@ internal class Program
                 outStream.Write(aes.IV, 0, 16);
                 outStream.Flush();
                 inStream.CopyTo(cStream);
+                cStream.FlushFinalBlock();
+                cStream.Clear();
             }
             Console.WriteLine("done.");
         }
     }
 
-    private static void StreamDecrypt(string[] files)
+    private static void Decrypt(string[] files)
     {
         foreach (string file in files)
         {
             if (!File.Exists(file))
             {
-                Console.WriteLine($"File {file} does not exist!");
+                Console.WriteLine($"Cannot find file {file}");
                 continue;
             }
 
@@ -144,11 +93,12 @@ internal class Program
 
             using (FileStream inStream = File.OpenRead(file))
             {
-                inStream.Read(aes.IV, 0, 16);
-                inStream.Seek(16, SeekOrigin.Begin);
+                if(inStream.Read(aes.IV, 0, 16) < 16) throw new EndOfStreamException("File is too small to contain an AES IV.");
                 using FileStream outStream = File.OpenWrite(outFileName);
-                using CryptoStream cStream = new CryptoStream(outStream, aes.CreateDecryptor(), CryptoStreamMode.Write);
-                inStream.CopyTo(cStream);
+                using CryptoStream cStream = new CryptoStream(inStream, aes.CreateDecryptor(), CryptoStreamMode.Read);
+                cStream.CopyTo(outStream);
+                outStream.Flush();
+                cStream.Clear();
             }
             Console.WriteLine("done.");
         }
