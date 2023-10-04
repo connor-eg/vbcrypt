@@ -96,7 +96,6 @@ internal class Program
 
             Console.Write($"Processing {file}... ");
             string outFileName = file.EndsWith(".vbcrypt") ? $"{file[..^8]}" : $"{file}.decrypted";
-            if (outFileName.EndsWith(".decrypted")) Console.Write("remember to remove '.decrypted' from the resulting file... ");
             try
             {
                 using (FileStream inStream = File.OpenRead(file))
@@ -110,7 +109,7 @@ internal class Program
                     outStream.Flush();
                     cStream.Clear();
                 }
-                Console.WriteLine("done.");
+                Console.WriteLine(outFileName.EndsWith(".decrypted") ? "done. Remember to remove '.decrypted' from the resulting file." : "done.");
             }
             catch (Exception e)
             {
