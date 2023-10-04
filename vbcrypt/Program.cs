@@ -78,7 +78,7 @@ internal class Program
             }
             catch (Exception e)
             {
-                Console.Write("failed. Reason:");
+                Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
             }
         }
@@ -113,7 +113,7 @@ internal class Program
             }
             catch (Exception e)
             {
-                Console.Write("failed. Reason:");
+                Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
                 Console.WriteLine("Please ensure that the password used for decryption matches the encryption password.");
             }
