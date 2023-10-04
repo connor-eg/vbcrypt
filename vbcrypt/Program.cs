@@ -46,7 +46,6 @@ internal class Program
         aes.Clear();
 
         Console.WriteLine("Done.");
-        
     }
     
     private static void Encrypt(string[] files)
@@ -63,17 +62,25 @@ internal class Program
 
             aes.GenerateIV();
 
-            using (FileStream inStream = File.OpenRead(file))
+            try
             {
-                using FileStream outStream = File.OpenWrite($"{file}.vbcrypt");
-                using CryptoStream cStream = new CryptoStream(outStream, aes.CreateEncryptor(), CryptoStreamMode.Write);
-                outStream.Write(aes.IV, 0, 16);
-                outStream.Flush();
-                inStream.CopyTo(cStream);
-                cStream.FlushFinalBlock();
-                cStream.Clear();
+                using (FileStream inStream = File.OpenRead(file))
+                {
+                    using FileStream outStream = File.OpenWrite($"{file}.vbcrypt");
+                    using CryptoStream cStream = new CryptoStream(outStream, aes.CreateEncryptor(), CryptoStreamMode.Write);
+                    outStream.Write(aes.IV, 0, 16);
+                    outStream.Flush();
+                    inStream.CopyTo(cStream);
+                    cStream.FlushFinalBlock();
+                    cStream.Clear();
+                }
+                Console.WriteLine("done.");
             }
-            Console.WriteLine("done.");
+            catch (Exception e)
+            {
+                Console.WriteLine("failed. Reason:");
+                Console.WriteLine(e.Message);
+            }
         }
     }
 
@@ -90,17 +97,27 @@ internal class Program
             Console.Write($"Processing {file}... ");
             string outFileName = file.EndsWith(".vbcrypt") ? $"{file[..^8]}" : $"{file}.decrypted";
             if (outFileName.EndsWith(".decrypted")) Console.Write("remember to remove '.decrypted' from the resulting file... ");
-
-            using (FileStream inStream = File.OpenRead(file))
+            try
             {
-                if(inStream.Read(aes.IV, 0, 16) < 16) throw new EndOfStreamException("File is too small to contain an AES IV.");
-                using FileStream outStream = File.OpenWrite(outFileName);
-                using CryptoStream cStream = new CryptoStream(inStream, aes.CreateDecryptor(), CryptoStreamMode.Read);
-                cStream.CopyTo(outStream);
-                outStream.Flush();
-                cStream.Clear();
+                using (FileStream inStream = File.OpenRead(file))
+                {
+                    byte[] recoveredIV = new byte[16];
+                    if (inStream.Read(recoveredIV, 0, 16) < 16) throw new EndOfStreamException("File is too small to contain an AES IV.");
+                    aes.IV = recoveredIV;
+                    using FileStream outStream = File.OpenWrite(outFileName);
+                    using CryptoStream cStream = new CryptoStream(inStream, aes.CreateDecryptor(), CryptoStreamMode.Read);
+                    cStream.CopyTo(outStream);
+                    outStream.Flush();
+                    cStream.Clear();
+                }
+                Console.WriteLine("done.");
             }
-            Console.WriteLine("done.");
+            catch (Exception e)
+            {
+                Console.WriteLine("failed. Reason:");
+                Console.WriteLine(e.Message);
+                Console.WriteLine("Please ensure that the password used for decryption matches the encryption password.");
+            }
         }
     }
 }
