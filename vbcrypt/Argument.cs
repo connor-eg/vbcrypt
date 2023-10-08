@@ -9,13 +9,12 @@ namespace vbcrypt
 {
     internal class Argument
     {
-        private List<string> Values;
+        private readonly List<string> Values;
+        public int Count { get { return Values.Count; } }
 
         public Argument() { 
             Values = new List<string>();
         }
-
-        public int Count() { return Values.Count; }
 
         public string GetValue() { return Values[0]; }
 

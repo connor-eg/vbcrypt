@@ -91,6 +91,11 @@ namespace vbcrypt
             // This decision tree may be bigger than my family tree but whatever.
             // "clean code" is a myth perpetuated by enterprise coders who think they're better than you.
 
+            if(filearg.Count == 0)
+            {
+                throw new ParseException("At least one file is required!");
+            }
+
             map.Add("options", options);
             map.Add("files", filearg);
 

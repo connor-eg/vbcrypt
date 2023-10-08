@@ -11,14 +11,16 @@ internal class Program
     private static System.Security.Cryptography.Aes aes = System.Security.Cryptography.Aes.Create();
     private static void Main(string[] args)
     {
+        Dictionary<string, Argument> parsedArgs;
         try
         {
-            Dictionary<string, Argument> parsedArgs = ArgumentParser.Parse(args);
+            parsedArgs = ArgumentParser.Parse(args);
         }
         catch (ParseException e)
         {
             Console.WriteLine(e.Message);
-            throw;
+            Console.WriteLine("Run with no arguments to get a help message.");
+            return;
         }
         
 
@@ -36,6 +38,7 @@ internal class Program
         // Now that we're through that reference, let's get the rest of the arguments ready for use.
         string runMode = parsedArgs["mode"].GetValue();
         string[] fileNames = parsedArgs["files"].GetValues();
+        string[] options = parsedArgs["options"].GetValues(); // may be empty.
 
         // Generate an AES key (256 bits because I'm cool btw) from the key phrase/file
         // No need to run the hash more than once because the key can't be obtained from the finished files anyways. The hash just normalizes the input key to a fixed size.
