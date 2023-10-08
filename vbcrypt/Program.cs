@@ -11,13 +11,16 @@ internal class Program
     private static System.Security.Cryptography.Aes aes = System.Security.Cryptography.Aes.Create();
     private static void Main(string[] args)
     {
-        Dictionary<string, Argument>? parsedArgs = ArgumentParser.Parse(args);
-        if(parsedArgs == null)
+        try
         {
-            Console.WriteLine("An incorrect number of arguments was passed in or an argument was invalid.");
-            Console.WriteLine("Run this program with no arguments to see proper usage..");
-            return;
+            Dictionary<string, Argument> parsedArgs = ArgumentParser.Parse(args);
         }
+        catch (ParseException e)
+        {
+            Console.WriteLine(e.Message);
+            throw;
+        }
+        
 
         // If we're here, we should now have a valid map of arguments and can actually start the program part of the program.
 
