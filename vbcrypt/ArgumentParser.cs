@@ -29,7 +29,7 @@
             map.Add("key", new Argument().Add(input[0]));
 
             // Second argument specifies whether we are doing encryption or decryption.
-            String[] validList = { "e", "d" }; // Cool and scalable to more run modes.
+            String[] validList = { "e", "d", "ex", "dx" }; // Cool and scalable to more run modes.
             if (validList.Contains(input[1]))
             {
                 map.Add("mode", new Argument().Add(input[1]));
