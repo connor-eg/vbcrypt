@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace vbcrypt
+﻿namespace vbcrypt
 {
     internal class ArgumentParser
     {
@@ -17,25 +9,19 @@ namespace vbcrypt
             {
                 throw new ParseException("""
                     Program usage:
-                      vbcrypt <phrase> <run mode> [options] <files>
+                      vbcrypt <phrase> <run mode> <files>
                       Arguments:
-                        phrase      Determines what key is used to encrypt/decrypt files. This is effectively a password lock, but
-                                      once I get this program working I do intend to allow a key file to be used as well.
-                                    Note that if your key phrase contains special characters (spaces etc.) you will have to escape
-                                      those in your terminal.
+                        phrase      Determines what key is used to encrypt/decrypt files. This is effectively a password lock.
+
                         Run modes:
                           e         This program run will encrypt files.
                           d         This program run will decrypt files.
-
-                        Options:
-                          h         Obfuscate resulting files' names and store the original with the encrypted file. Only valid for encryption.
-                          del       Delete the old files after encryption/decryption completes. Not recommended at this time.
-                          X         Indicates that any further arguments are to be interpreted as files.
-                                      Use this if the file you want to operate on would otherwise be interpreted as an option,
-                                      or if you intend to call this program programmatically (to eliminiate unintended behavior)
+                          ex        This program run will encrypt files and delete the original file when done.
+                          dx        This program run will decrypt files and delete the encrypted file when done.
 
                         files (<file[,file,...]>)   The file/files to encrypt/decrypt. Requires at least one argument.
-                                                    Directories are not valid files; consider zipping the directory and encrypting that.
+                                                    Directories are not valid files. If you need to encrypt a directory,
+                                                      consider compressing it into a single file first.
                     """);
             }
 
@@ -50,53 +36,12 @@ namespace vbcrypt
             }
             else
             {
-                throw new ParseException($"Mode '{input[1]}' is invalid.");
+                throw new ParseException($"Run mode '{input[1]}' is invalid. Run with no arguments to see all valid run modes.");
             }
 
-            // The remaining arguments all point to options and files.
-            Argument options = new();
+            // The remaining arguments all point to files.
             Argument filearg = new();
-
-            // Thanks to options handling, this is more complex than it was. Oh well.
-            string[] validOptions = { "h", "del", "X" };
-            bool interpretAsOption = true; // Whether we should attempt to interpret the argument we're staring at as an option first.
-                                           // Once this is false, we always interpret remaining options as files.
-            for (int i = 2; i < input.Length; i++)
-            {
-                string arg = input[i];
-                if (interpretAsOption)
-                {
-                    if (validOptions.Contains(arg))
-                    {
-                        // The "X" option gets its own special handling. It disables interpretAsOption but is not itself added as a file.
-                        if (arg == "X")
-                        {
-                            interpretAsOption = false;
-                        } else
-                        {
-                            options.Add(arg); // The only nice thing about this is that it means that options can be searched for in the finished map:
-                                              // map["options"].GetValues().Contains("del") for instance.
-                                              // Holy hell that's bloated now that I'm looking at it from here.
-                        }
-                    } else // Once we run into the first option that isn't in the options list, we start interpreting everything as files.
-                    {
-                        interpretAsOption = false;
-                        filearg.Add(arg);
-                    }
-                } else
-                {
-                    filearg.Add(arg);
-                }
-            }
-            // This decision tree may be bigger than my family tree but whatever.
-            // "clean code" is a myth perpetuated by enterprise coders who think they're better than you.
-
-            if(filearg.Count == 0)
-            {
-                throw new ParseException("At least one file is required!");
-            }
-
-            map.Add("options", options);
+            for (int i = 2; i < input.Length; i++) filearg.Add(input[i]);
             map.Add("files", filearg);
 
             return map;
