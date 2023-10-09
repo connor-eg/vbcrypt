@@ -80,6 +80,7 @@ internal class Program
             {
                 Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
+                File.Delete($"{file}.vbcrypt");
             }
         }
     }
@@ -118,6 +119,7 @@ internal class Program
             {
                 Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
+                File.Delete(outFileName);
             }
         }
     }
