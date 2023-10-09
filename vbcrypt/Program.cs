@@ -112,7 +112,7 @@ internal class Program
                     outStream.Flush();
                     cStream.Clear();
                 }
-                Console.WriteLine(terseName ? "done. Remember to remove '.decrypted' from the resulting file." : "done.");
+                Console.WriteLine(terseName ? "done." : "done. Remember to remove '.decrypted' from the resulting file.");
                 if (deleteOnFinish) File.Delete(file);
             }
             catch (Exception e)
