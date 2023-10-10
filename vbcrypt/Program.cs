@@ -28,6 +28,10 @@ internal class Program
 
         // Extracting arguments from the ArgumentParser.
         string phrase = parsedArgs["key"].GetValue();
+        try {                                       // Handling Unicode normalization. If this does not work, the program can proceed without.
+            string normalized = phrase.Normalize(); // The idea is to try to prevent issues when multiple callers use the same args, with different encodings.
+            phrase = normalized;                    // I do not have a good way to generate a lot of different encodings so the only testing I'll do
+        } catch (Exception){}                       //  is to ensure that this change doesn't break anything.
         string runMode = parsedArgs["mode"].GetValue();
         string[] fileNames = parsedArgs["files"].GetValues();
 
