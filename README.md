@@ -9,4 +9,4 @@ If you do use this and find yourself unable to recover your encrypted files late
 If you do want to actually encrypt your files, consider looking up anyone else's file encryptor -- it's probably better.
 
 # That said,
-I think it works now! I am able to encrypt and decrypt files successfully.
+It looks like it works!
