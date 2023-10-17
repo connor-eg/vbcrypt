@@ -8,7 +8,6 @@ internal class CryptHandler : IDisposable
     public CryptHandler(SymmetricAlgorithm CryptAlgorithmInstance, HashAlgorithm HashAlgorithmInstance)
     {
         this.CryptAlgorithmInstance = CryptAlgorithmInstance;
-
         this.HashAlgorithmInstance = HashAlgorithmInstance;
     }
 
