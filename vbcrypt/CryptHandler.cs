@@ -5,10 +5,9 @@ internal class CryptHandler : IDisposable
     private SymmetricAlgorithm CryptAlgorithmInstance;
     private HashAlgorithm HashAlgorithmInstance;
 
-    public CryptHandler(SymmetricAlgorithm CryptAlgorithmInstance, HashAlgorithm HashAlgorithmInstance, int keySize = 256)
+    public CryptHandler(SymmetricAlgorithm CryptAlgorithmInstance, HashAlgorithm HashAlgorithmInstance)
     {
         this.CryptAlgorithmInstance = CryptAlgorithmInstance;
-        this.CryptAlgorithmInstance.KeySize = keySize;
 
         this.HashAlgorithmInstance = HashAlgorithmInstance;
     }

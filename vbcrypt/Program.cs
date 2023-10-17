@@ -16,13 +16,6 @@ internal class Program
             Console.WriteLine(e.Message);
             return;
         }
-        
-        /**
-         *  The process
-         *   1. Generate an AES key from the key phrase.
-         *   2. Use that key to encrypt or decrypt all of the files which the user has specified.
-         *   3. There is no step 3.
-         */
 
         // Extracting arguments from the ArgumentParser.
         string phrase = parsedArgs["key"].GetValue();
@@ -34,11 +27,12 @@ internal class Program
         string[] fileNames = parsedArgs["files"].GetValues();
 
         // This looks so much cleaner than before :)
-        // Just look at that using block go!
-        using (CryptHandler cryptHandler = new(Aes.Create(), SHA256.Create(), 256))
+        // Dependency injection, the using block, it's all so much better.
+        Aes aes = Aes.Create();
+        aes.KeySize = 256;
+        using (CryptHandler cryptHandler = new(aes, SHA256.Create()))
         {
-            // This makes assumptions (bad), but it's the best I know how to do at this moment.
-            // It will work for ASCII strings and UTF8 though, so that should be good enough.
+            // This makes assumptions about string encoding (bad), but I don't think I can do it better at this time.
             cryptHandler.HashAndSetKey(Encoding.UTF8.GetBytes(phrase));
 
             if (runMode == "e") cryptHandler.Encrypt(fileNames, false);
