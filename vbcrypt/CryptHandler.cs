@@ -93,9 +93,9 @@ internal class CryptHandler : IDisposable
 
             Console.Write($"Processing {file}... ");
 
-            CryptAlgorithmInstance.GenerateIV();
-            var outFileName = $"{GenerateRandomString(12)}.vbcr";
-            Console.WriteLine(outFileName);
+            //CryptAlgorithmInstance.GenerateIV();
+            //var outFileName = $"{GenerateRandomString(12)}.vbcr";
+            //Console.WriteLine(outFileName);
 
             try
             {
