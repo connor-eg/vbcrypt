@@ -5,7 +5,8 @@
         private readonly List<string> Values;
         public int Count { get { return Values.Count; } }
 
-        public Argument() { 
+        public Argument()
+        {
             Values = new List<string>();
         }
 
