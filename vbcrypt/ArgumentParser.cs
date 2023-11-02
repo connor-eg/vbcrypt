@@ -5,14 +5,12 @@
         public static Dictionary<string, Argument> Parse(string[] input)
         {
             Dictionary<string, Argument> map = new();
-            if (input.Length < 3)
+            if (input.Length < 2)
             {
                 throw new ParseException("""
                     Program usage:
-                      vbcrypt <phrase> <run mode> <files>
+                      vbcrypt <run mode> <files>
                       Arguments:
-                        phrase      Determines what key is used to encrypt/decrypt files. This is effectively a password lock.
-
                         Run modes:
                           e         This program run will encrypt files.
                           d         This program run will decrypt files.
@@ -25,23 +23,20 @@
                     """);
             }
 
-            // First argument specifies the key we are using.
-            map.Add("key", new Argument().Add(input[0]));
-
             // Second argument specifies whether we are doing encryption or decryption.
             String[] validList = { "e", "d", "ex", "dx" }; // Cool and scalable to more run modes.
-            if (validList.Contains(input[1]))
+            if (validList.Contains(input[0]))
             {
-                map.Add("mode", new Argument().Add(input[1]));
+                map.Add("mode", new Argument().Add(input[0]));
             }
             else
             {
-                throw new ParseException($"Run mode '{input[1]}' is invalid. Run with no arguments to see all valid run modes.");
+                throw new ParseException($"Run mode '{input[0]}' is invalid. Run with no arguments to see all valid run modes.");
             }
 
             // The remaining arguments all point to files.
             Argument filearg = new();
-            for (int i = 2; i < input.Length; i++) filearg.Add(input[i]);
+            for (int i = 1; i < input.Length; i++) filearg.Add(input[i]);
             map.Add("files", filearg);
 
             return map;
