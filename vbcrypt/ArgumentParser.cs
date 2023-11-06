@@ -9,13 +9,14 @@
             {
                 throw new ParseException("""
                     Program usage:
-                      vbcrypt <run mode> <files>
+                      vbcrypt [options] <run mode> <files>
                       Arguments:
+                        Options:
+                          -d, --delete      Delete the original files after each operation
+                          -o, --obscure     Encrypt the original files' names (meaningful for encryption only)
                         Run modes:
-                          e         This program run will encrypt files.
-                          d         This program run will decrypt files.
-                          ex        This program run will encrypt files and delete the original file when done.
-                          dx        This program run will decrypt files and delete the encrypted file when done.
+                          -E, --encrypt     This program run will encrypt files.
+                          -D, --decrypt     This program run will decrypt files.
 
                         files (<file[,file,...]>)   The file/files to encrypt/decrypt. Requires at least one argument.
                                                     Directories are not valid files. If you need to encrypt a directory,
@@ -23,20 +24,49 @@
                     """);
             }
 
-            // Second argument specifies whether we are doing encryption or decryption.
-            String[] validList = { "e", "d", "ex", "dx" }; // Cool and scalable to more run modes.
-            if (validList.Contains(input[0]))
+            // Start reading arguments until we hit the run mode (this gathers options)
+            int argnbr = 0;
+            do
             {
-                map.Add("mode", new Argument().Add(input[0]));
-            }
-            else
+                string arg = input[argnbr++];
+                switch(arg)
+                {
+                    case "-d":
+                    case "--delete":
+                        map.Add("delete", new Argument());
+                        break;
+                    case "-o":
+                    case "--obscure":
+                        map.Add("obscure", new Argument());
+                        break;
+                    case "-E":
+                    case "--encrypt":
+                        map.Add("mode", new Argument().Add("e"));
+                        break;
+                    case "-D":
+                    case "--decrypt":
+                        map.Add("mode", new Argument().Add("d"));
+                        break;
+                    default:
+                        throw new ParseException($"The option {arg} is not valid. Run with no arguments to see all valid options.");
+                }
+            } while (argnbr < input.Length && !map.ContainsKey("mode"));
+
+            // Check if the user has actually specified any run mode.
+            if (!map.ContainsKey("mode"))
             {
-                throw new ParseException($"Run mode '{input[0]}' is invalid. Run with no arguments to see all valid run modes.");
+                throw new ParseException("This program requires a run mode. Run with no arguments to see the valid run modes.");
             }
 
             // The remaining arguments all point to files.
             Argument filearg = new();
-            for (int i = 1; i < input.Length; i++) filearg.Add(input[i]);
+            while(argnbr < input.Length)
+            {
+                filearg.Add(input[argnbr++]);
+            }
+
+            throw new ParseException("You must specify at least one file to operate on. Run with no arguments to see a valid program run.");
+
             map.Add("files", filearg);
 
             return map;

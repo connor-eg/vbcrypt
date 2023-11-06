@@ -27,7 +27,7 @@ internal class CryptHandler : IDisposable
         CryptAlgorithmInstance.Key = HashAlgorithmInstance.ComputeHash(bytes);
     }
 
-    public void Decrypt(string[] files, bool deleteOnFinish)
+    public void Decrypt(string[] files, bool deleteOnFinish = false)
     {
         foreach (string file in files)
         {
@@ -82,7 +82,7 @@ internal class CryptHandler : IDisposable
         }
     }
 
-    public void Encrypt(string[] files, bool deleteOnFinish)
+    public void Encrypt(string[] files, bool deleteOnFinish = false, bool obfuscateNames = false)
     {
         Span<byte> zeroFill = stackalloc byte[8];
         zeroFill.Fill(0b00000000);
@@ -92,7 +92,7 @@ internal class CryptHandler : IDisposable
             {
                 Console.WriteLine($"Cannot find file {file}");
                 continue;
-            }
+            }   
 
             Console.Write($"Processing {file}... ");
 

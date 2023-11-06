@@ -20,6 +20,8 @@ internal class Program
         // Extracting arguments from the ArgumentParser
         string runMode = parsedArgs["mode"].GetValue();
         string[] fileNames = parsedArgs["files"].GetValues();
+        bool deleteOldFiles = parsedArgs.ContainsKey("delete");
+        bool obfuscateNames = parsedArgs.ContainsKey("obscure");
 
         // Getting the password from the terminal in a slightly more secure way
         Console.WriteLine("Enter a password for encryption/decryption, then press enter to use.");
@@ -63,10 +65,8 @@ internal class Program
             // As much as I would like to just take the raw bytes out of the string, that is not an option here.
             cryptHandler.HashAndSetKey(Encoding.UTF8.GetBytes(phrase));
 
-            if (runMode == "e") cryptHandler.Encrypt(fileNames, false);
-            if (runMode == "ex") cryptHandler.Encrypt(fileNames, true);
-            if (runMode == "d") cryptHandler.Decrypt(fileNames, false);
-            if (runMode == "dx") cryptHandler.Decrypt(fileNames, true);
+            if (runMode == "e") cryptHandler.Encrypt(fileNames, deleteOldFiles, obfuscateNames);
+            if (runMode == "d") cryptHandler.Decrypt(fileNames, deleteOldFiles);
         }
 
         Console.WriteLine("Done.");
