@@ -34,12 +34,9 @@ internal class Program
             if(cki.Key == ConsoleKey.Enter)
             {
                 // do nothing
-            } else if (cki.Key == ConsoleKey.Backspace) // backspace to remo
+            } else if (cki.Key == ConsoleKey.Backspace && phraseSB.Length > 0) // backspace to remove
             {
-                if(phraseSB.Length > 0)
-                {
-                    phraseSB.Remove(phraseSB.Length - 1, 1);
-                }
+                phraseSB.Remove(phraseSB.Length - 1, 1);
             } else
             {
                 phraseSB.Append(cki.KeyChar);

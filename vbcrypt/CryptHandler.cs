@@ -7,6 +7,8 @@ internal class CryptHandler : IDisposable
     private SymmetricAlgorithm CryptAlgorithmInstance;
     private HashAlgorithm HashAlgorithmInstance;
 
+    private static Random StringGeneratorRandom = new();
+
     public CryptHandler(SymmetricAlgorithm CryptAlgorithmInstance, HashAlgorithm HashAlgorithmInstance)
     {
         this.CryptAlgorithmInstance = CryptAlgorithmInstance;
@@ -17,6 +19,7 @@ internal class CryptHandler : IDisposable
     public void Dispose()
     {
         CryptAlgorithmInstance.Clear();
+        HashAlgorithmInstance.Clear();
     }
 
     public void HashAndSetKey(byte[] bytes)
@@ -44,7 +47,7 @@ internal class CryptHandler : IDisposable
                 {
                     // Recover the IV, which was written in plaintext to the first 16 bytes of the file.
                     byte[] recoveredIV = new byte[16];
-                    if (inStream.Read(recoveredIV, 0, 16) < 16) throw new EndOfStreamException("failed. File is too small to contain any encrypted data.");
+                    if (inStream.Read(recoveredIV, 0, 16) < 16) throw new EndOfStreamException("File is too small to contain any encrypted data.");
                     CryptAlgorithmInstance.IV = recoveredIV;
 
                     //Set up the streams
@@ -53,12 +56,12 @@ internal class CryptHandler : IDisposable
 
                     //Attempt to recover the eight null-bytes that serve as a password check (quick sanity check)
                     byte[] checksumBytes = new byte[8];
-                    if(cStream.Read(checksumBytes, 0, 8) < 8) throw new EndOfStreamException("failed. File is too small to contain any encrypted data.");
+                    if(cStream.Read(checksumBytes, 0, 8) < 8) throw new EndOfStreamException("File is too small to contain any encrypted data.");
                     for(int i = 0; i < 8; i++)
                     {
                         if (checksumBytes[i] != 0)
                         {
-                            throw new UnauthorizedAccessException("failed. The password provided was incorrect.");
+                            throw new UnauthorizedAccessException("The password provided was incorrect.");
                         }
                     }
 
@@ -130,10 +133,9 @@ internal class CryptHandler : IDisposable
     {
         const string characters = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890qwertyuiopasdfghjklzxcvbnm";
         StringBuilder sb = new();
-        Random random = new();
         for(int i = 0; i < 16; i++)
         {
-            sb.Append(characters[random.Next(characters.Length)]);
+            sb.Append(characters[StringGeneratorRandom.Next(characters.Length)]);
         }
         return sb.ToString();
     }
