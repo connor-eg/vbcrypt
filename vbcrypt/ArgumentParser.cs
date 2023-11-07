@@ -29,7 +29,7 @@
             do
             {
                 string arg = input[argnbr++];
-                switch(arg)
+                switch (arg)
                 {
                     case "-d":
                     case "--delete":
@@ -60,12 +60,12 @@
 
             // The remaining arguments all point to files.
             Argument filearg = new();
-            while(argnbr < input.Length)
+            while (argnbr < input.Length)
             {
                 filearg.Add(input[argnbr++]);
             }
 
-            if(filearg.Count == 0) throw new ParseException("You must specify at least one file to operate on. Run with no arguments to see a valid program run.");
+            if (filearg.Count == 0) throw new ParseException("You must specify at least one file to operate on. Run with no arguments to see a valid program run.");
 
             map.Add("files", filearg);
 

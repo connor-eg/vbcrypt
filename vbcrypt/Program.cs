@@ -33,13 +33,15 @@ internal class Program
         do
         {
             cki = Console.ReadKey(true);
-            if(cki.Key == ConsoleKey.Enter)
+            if (cki.Key == ConsoleKey.Enter)
             {
                 // do nothing
-            } else if (cki.Key == ConsoleKey.Backspace && phraseSB.Length > 0) // backspace to remove
+            }
+            else if (cki.Key == ConsoleKey.Backspace && phraseSB.Length > 0) // backspace to remove
             {
                 phraseSB.Remove(phraseSB.Length - 1, 1);
-            } else
+            }
+            else
             {
                 phraseSB.Append(cki.KeyChar);
             }
@@ -62,8 +64,8 @@ internal class Program
         using (CryptHandler cryptHandler = new(aes, SHA256.Create()))
         {
             // I did not understand string encoding in C# before. Every input string gets normalized to UTF16 internally, so the
-            //  encoding I choose below doesn't matter. However, just using straight UTF16 gives a larger input for the hash function.
-            cryptHandler.HashAndSetKey(Encoding.Unicode.GetBytes(phrase));
+            //  encoding I choose below doesn't matter. However, using UTF8 provides a compact output for the hash function.
+            cryptHandler.HashAndSetKey(Encoding.UTF8.GetBytes(phrase));
 
             if (runMode == "e") cryptHandler.Encrypt(fileNames, deleteOldFiles, obfuscateNames);
             if (runMode == "d") cryptHandler.Decrypt(fileNames, deleteOldFiles);

@@ -4,6 +4,7 @@ using System.Text;
 
 internal class CryptHandler : IDisposable
 {
+    private const string FileTooSmallMessage = "File is too small to contain any encrypted data.";
     private SymmetricAlgorithm CryptAlgorithmInstance;
     private HashAlgorithm HashAlgorithmInstance;
 
@@ -39,25 +40,24 @@ internal class CryptHandler : IDisposable
 
             Console.Write($"Processing {file}... ");
 
-            bool terseName = file.EndsWith(".vbcrypt");
-            string outFileName = terseName ? $"{file[..^8]}" : $"{file}.decrypted";
+            bool usingTerseName = file.EndsWith(".vbcr"); // No harm in doing this check early.
+            string outFileName = ""; // This has to be way out here for error handling later.
+
             try
             {
                 using (FileStream inStream = File.OpenRead(file))
                 {
                     // Recover the IV, which was written in plaintext to the first 16 bytes of the file.
                     byte[] recoveredIV = new byte[16];
-                    if (inStream.Read(recoveredIV, 0, 16) < 16) throw new EndOfStreamException("File is too small to contain any encrypted data.");
+                    if (inStream.Read(recoveredIV, 0, 16) < 16) throw new EndOfStreamException(FileTooSmallMessage + " A");
                     CryptAlgorithmInstance.IV = recoveredIV;
 
-                    //Set up the streams
-                    using FileStream outStream = File.OpenWrite(outFileName);
                     using CryptoStream cStream = new(inStream, CryptAlgorithmInstance.CreateDecryptor(), CryptoStreamMode.Read);
 
-                    //Attempt to recover the eight null-bytes that serve as a password check (quick sanity check)
+                    //Attempt to recover the eight null-bytes that serve as a password check (quick password check)
                     byte[] checksumBytes = new byte[8];
-                    if(cStream.Read(checksumBytes, 0, 8) < 8) throw new EndOfStreamException("File is too small to contain any encrypted data.");
-                    for(int i = 0; i < 8; i++)
+                    if (cStream.Read(checksumBytes, 0, 8) < 8) throw new EndOfStreamException(FileTooSmallMessage + " B");
+                    for (int i = 0; i < 8; i++)
                     {
                         if (checksumBytes[i] != 0)
                         {
@@ -65,19 +65,38 @@ internal class CryptHandler : IDisposable
                         }
                     }
 
+                    //Recover the size of the original file name and interpret.
+                    byte[] origNameSizeBytes = new byte[4];
+                    if (cStream.Read(origNameSizeBytes, 0, 4) < 4) throw new EndOfStreamException(FileTooSmallMessage + " C");
+                    int origNameSize = BitConverter.ToInt32(origNameSizeBytes);
+                    Console.Write(" " + origNameSize + " ");
+                    if (origNameSize > 0)
+                    {
+                        byte[] origNameBytes = new byte[origNameSize];
+                        if (cStream.Read(origNameBytes, 0, origNameSize) < origNameSize) throw new EndOfStreamException(FileTooSmallMessage + " D");
+                        outFileName = Encoding.UTF8.GetString(origNameBytes);
+                    }
+                    else
+                    {
+                        outFileName = usingTerseName ? $"{file[..^4]}" : $"{file}.decrypted";
+                    }
+
+                    // Now we know the file name we want to use.
+                    using FileStream outStream = File.OpenWrite(outFileName);
+
                     //Get the rest of the data from the file from this point.
                     cStream.CopyTo(outStream);
                     outStream.Flush();
                     cStream.Clear();
+                    Console.WriteLine(usingTerseName ? "done." : "done. Remember to remove '.decrypted' from the resulting file.");
                 }
-                Console.WriteLine(terseName ? "done." : "done. Remember to remove '.decrypted' from the resulting file.");
                 if (deleteOnFinish) File.Delete(file);
             }
             catch (Exception e)
             {
                 Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
-                File.Delete(outFileName);
+                if(outFileName != "" && File.Exists(outFileName)) File.Delete(outFileName); 
             }
         }
     }
@@ -85,45 +104,48 @@ internal class CryptHandler : IDisposable
     public void Encrypt(string[] files, bool deleteOnFinish = false, bool obfuscateNames = false)
     {
         Span<byte> zeroFill = stackalloc byte[8];
-        zeroFill.Fill(0b00000000);
+        zeroFill.Clear(); // Not actually sure if this is necessary but it never hurts to be sure.
         foreach (string file in files)
         {
             if (!File.Exists(file))
             {
                 Console.WriteLine($"Cannot find file {file}");
                 continue;
-            }   
+            }
 
             Console.Write($"Processing {file}... ");
 
-            //CryptAlgorithmInstance.GenerateIV();
-            //var outFileName = $"{GenerateRandomString(12)}.vbcr";
-            //Console.WriteLine(outFileName);
+            CryptAlgorithmInstance.GenerateIV();
+
+            string outFileName = obfuscateNames ? $"{GenerateRandomString(12)}.vbcr" : $"{file}.vbcr";
+            byte[] oldNameBytes = obfuscateNames ? Encoding.UTF8.GetBytes(Path.GetFileName(file)) : Array.Empty<byte>();
+            byte[] sizeOfBytes = BitConverter.GetBytes(oldNameBytes.Length);
 
             try
             {
                 using (FileStream inStream = File.OpenRead(file))
                 {
-                    using FileStream outStream = File.OpenWrite($"{file}.vbcrypt");
+                    using FileStream outStream = File.OpenWrite(outFileName);
                     using CryptoStream cStream = new(outStream, CryptAlgorithmInstance.CreateEncryptor(), CryptoStreamMode.Write);
                     outStream.Write(CryptAlgorithmInstance.IV, 0, 16); // Write the IV to the beginning of the file for later decryption
-                    // Write 8 encrypted zero bytes to the file to serve as a checksum.
-                    // That is to say, the bytes will become zero again when extracting them from the encrypted file.
-                    // If the password used for decryption is different than the one used for encryption, we would extract nonzero bytes.
-                    cStream.Write(zeroFill.ToArray());
-                    inStream.CopyTo(cStream); // Now we write the contents of the original file to the output stream
+                    cStream.Write(zeroFill.ToArray()); // Write 8 encrypted zero bytes to the file to serve as a checksum / password check when decrypting.
+                    cStream.Write(sizeOfBytes); // Handling storing the original file name in the encrypted file if the user asked for that.
+                    if (obfuscateNames) cStream.Write(oldNameBytes);
+                    // Now we encrypt and write the contents of the original file to the output stream
+                    inStream.CopyTo(cStream);
                     cStream.FlushFinalBlock();
                     cStream.Clear();
-                }
-                Console.WriteLine("done.");
-                if (deleteOnFinish) File.Delete(file);
 
+                    Console.WriteLine($"done. Saved to {outFileName}");
+                }
+
+                if (deleteOnFinish) File.Delete(file);
             }
             catch (Exception e)
             {
                 Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
-                File.Delete($"{file}.vbcrypt");
+                if (File.Exists(outFileName)) File.Delete(outFileName);
             }
         }
     }
@@ -133,7 +155,7 @@ internal class CryptHandler : IDisposable
     {
         const string characters = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890qwertyuiopasdfghjklzxcvbnm";
         StringBuilder sb = new();
-        for(int i = 0; i < 16; i++)
+        for (int i = 0; i < size; i++)
         {
             sb.Append(characters[StringGeneratorRandom.Next(characters.Length)]);
         }
