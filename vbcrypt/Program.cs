@@ -56,14 +56,14 @@ internal class Program
 
 
         // This looks so much cleaner than before :)
-        // Dependency injection, the using block, it's all so much better.
+        // Dependency injection, the using block, it's much groovier this way.
         Aes aes = Aes.Create();
         aes.KeySize = 256;
         using (CryptHandler cryptHandler = new(aes, SHA256.Create()))
         {
-            // This makes assumptions about string encoding (bad), but I don't think I can do it better at this time.
-            // As much as I would like to just take the raw bytes out of the string, that is not an option in C#.
-            cryptHandler.HashAndSetKey(Encoding.UTF32.GetBytes(phrase));
+            // I did not understand string encoding in C# before. Every input string gets normalized to UTF16 internally, so the
+            //  encoding I choose below doesn't matter. However, just using straight UTF16 gives a larger input for the hash function.
+            cryptHandler.HashAndSetKey(Encoding.Unicode.GetBytes(phrase));
 
             if (runMode == "e") cryptHandler.Encrypt(fileNames, deleteOldFiles, obfuscateNames);
             if (runMode == "d") cryptHandler.Decrypt(fileNames, deleteOldFiles);
