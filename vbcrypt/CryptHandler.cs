@@ -4,9 +4,8 @@ using System.Text;
 
 internal class CryptHandler : IDisposable
 {
-    private const string FileTooSmallMessage = "File is too small to contain any encrypted data.";
-    private SymmetricAlgorithm CryptAlgorithmInstance;
-    private HashAlgorithm HashAlgorithmInstance;
+    private readonly SymmetricAlgorithm CryptAlgorithmInstance;
+    private readonly HashAlgorithm HashAlgorithmInstance;
 
     private static Random StringGeneratorRandom = new();
 
@@ -49,14 +48,14 @@ internal class CryptHandler : IDisposable
                 {
                     // Recover the IV, which was written in plaintext to the first 16 bytes of the file.
                     byte[] recoveredIV = new byte[16];
-                    if (inStream.Read(recoveredIV, 0, 16) < 16) throw new EndOfStreamException(FileTooSmallMessage + " A");
+                    inStream.ReadExactly(recoveredIV, 0, 16);
                     CryptAlgorithmInstance.IV = recoveredIV;
 
                     using CryptoStream cStream = new(inStream, CryptAlgorithmInstance.CreateDecryptor(), CryptoStreamMode.Read);
 
                     //Attempt to recover the eight null-bytes that serve as a password check (quick password check)
                     byte[] checksumBytes = new byte[8];
-                    if (cStream.Read(checksumBytes, 0, 8) < 8) throw new EndOfStreamException(FileTooSmallMessage + " B");
+                    cStream.ReadExactly(checksumBytes, 0, 8);
                     for (int i = 0; i < 8; i++)
                     {
                         if (checksumBytes[i] != 0)
@@ -67,13 +66,16 @@ internal class CryptHandler : IDisposable
 
                     //Recover the size of the original file name and interpret.
                     byte[] origNameSizeBytes = new byte[4];
-                    if (cStream.Read(origNameSizeBytes, 0, 4) < 4) throw new EndOfStreamException(FileTooSmallMessage + " C");
+                    cStream.ReadExactly(origNameSizeBytes, 0, 4);
                     int origNameSize = BitConverter.ToInt32(origNameSizeBytes);
                     Console.Write(" " + origNameSize + " ");
                     if (origNameSize > 0)
                     {
                         byte[] origNameBytes = new byte[origNameSize];
-                        if (cStream.Read(origNameBytes, 0, origNameSize) < origNameSize) throw new EndOfStreamException(FileTooSmallMessage + " D");
+                        // Fun fact: there's this really braindead interpretation of "reading" in C#'s CryptoStream where when you want to read N
+                        // bytes into a buffer, it just quits after reading between 1 and N bytes. It looks like they had to add a "ReadExactly" method
+                        // if you want to actually read exactly N bytes. Brilliant.
+                        cStream.ReadExactly(origNameBytes, 0, origNameSize);
                         outFileName = Encoding.UTF8.GetString(origNameBytes);
                     }
                     else
@@ -88,9 +90,13 @@ internal class CryptHandler : IDisposable
                     cStream.CopyTo(outStream);
                     outStream.Flush();
                     cStream.Clear();
-                    Console.WriteLine(usingTerseName ? "done." : "done. Remember to remove '.decrypted' from the resulting file.");
+                    Console.WriteLine(usingTerseName ? $"done. Saved as {outFileName}" : $"done. Remember to remove '.decrypted' from the resulting file {outFileName}");
                 }
                 if (deleteOnFinish) File.Delete(file);
+            }
+            catch(EndOfStreamException)
+            {
+                Console.Write("failed. Reason: this file is too small to contain any encrypted data.");
             }
             catch (Exception e)
             {
@@ -150,7 +156,7 @@ internal class CryptHandler : IDisposable
         }
     }
 
-    //Helper method to do... exactly what it looks like it does.
+    // Helper method to do... exactly what it looks like it does.
     private static string GenerateRandomString(int size = 16)
     {
         const string characters = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890qwertyuiopasdfghjklzxcvbnm";
