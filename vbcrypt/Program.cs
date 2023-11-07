@@ -29,7 +29,7 @@ internal class Program
         Console.Write("> ");
 
         StringBuilder phraseSB = new();
-        ConsoleKeyInfo cki = new();
+        ConsoleKeyInfo cki;
         do
         {
             cki = Console.ReadKey(true);
@@ -62,8 +62,8 @@ internal class Program
         using (CryptHandler cryptHandler = new(aes, SHA256.Create()))
         {
             // This makes assumptions about string encoding (bad), but I don't think I can do it better at this time.
-            // As much as I would like to just take the raw bytes out of the string, that is not an option here.
-            cryptHandler.HashAndSetKey(Encoding.UTF8.GetBytes(phrase));
+            // As much as I would like to just take the raw bytes out of the string, that is not an option in C#.
+            cryptHandler.HashAndSetKey(Encoding.UTF32.GetBytes(phrase));
 
             if (runMode == "e") cryptHandler.Encrypt(fileNames, deleteOldFiles, obfuscateNames);
             if (runMode == "d") cryptHandler.Decrypt(fileNames, deleteOldFiles);

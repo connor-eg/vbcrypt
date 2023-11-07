@@ -33,7 +33,7 @@
                 {
                     case "-d":
                     case "--delete":
-                        map.Add("delete", new Argument());
+                        map.Add("delete", new Argument()); // Still internally debating on whether this should be nullable for options. It likely doesn't matter.
                         break;
                     case "-o":
                     case "--obscure":
@@ -65,7 +65,7 @@
                 filearg.Add(input[argnbr++]);
             }
 
-            throw new ParseException("You must specify at least one file to operate on. Run with no arguments to see a valid program run.");
+            if(filearg.Count == 0) throw new ParseException("You must specify at least one file to operate on. Run with no arguments to see a valid program run.");
 
             map.Add("files", filearg);
 
