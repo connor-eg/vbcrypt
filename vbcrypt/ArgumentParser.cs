@@ -96,7 +96,7 @@ namespace vbcrypt
                 throw new ParseException("You have specified -e or -d without a file. Try running with --help");
             }
 
-            if(encryptArg.Count == 0 && decryptArg.Count == 0) // The user never specified
+            if(encryptArg.Count == 0 && decryptArg.Count == 0) // The user never specified -e or -d
             {
                 throw new ParseException("This program requires a run mode. Try running with --help");
             }
