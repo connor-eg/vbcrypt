@@ -7,7 +7,7 @@ internal class CryptHandler : IDisposable
     private readonly SymmetricAlgorithm CryptAlgorithmInstance;
     private readonly HashAlgorithm HashAlgorithmInstance;
 
-    private static Random StringGeneratorRandom = new();
+    private static readonly Random StringGeneratorRandom = new();
 
     public CryptHandler(SymmetricAlgorithm CryptAlgorithmInstance, HashAlgorithm HashAlgorithmInstance)
     {
@@ -15,7 +15,7 @@ internal class CryptHandler : IDisposable
         this.HashAlgorithmInstance = HashAlgorithmInstance;
     }
 
-    // F a n c y . Allows a "using" block to manage instances of this class.
+    // This class is meant to be managed by the using keyword.
     public void Dispose()
     {
         CryptAlgorithmInstance.Clear();
@@ -29,6 +29,7 @@ internal class CryptHandler : IDisposable
 
     public void Decrypt(string[] files, bool deleteOnFinish = false)
     {
+        if (files.Length == 0) return;
         foreach (string file in files)
         {
             if (!File.Exists(file))
@@ -37,7 +38,7 @@ internal class CryptHandler : IDisposable
                 continue;
             }
 
-            Console.Write($"Processing {file}... ");
+            Console.Write($"Decrypting {file}... ");
 
             bool usingTerseName = file.EndsWith(".vbcr"); // No harm in doing this check early.
             string outFileName = ""; // This has to be way out here for error handling later.
@@ -68,11 +69,10 @@ internal class CryptHandler : IDisposable
                     byte[] origNameSizeBytes = new byte[4];
                     cStream.ReadExactly(origNameSizeBytes, 0, 4);
                     int origNameSize = BitConverter.ToInt32(origNameSizeBytes);
-                    Console.Write(" " + origNameSize + " ");
                     if (origNameSize > 0)
                     {
                         byte[] origNameBytes = new byte[origNameSize];
-                        // Fun fact: there's this really braindead interpretation of "reading" in C#'s CryptoStream where when you want to read N
+                        // Fun fact: there's this really funny interpretation of "reading" in C#'s CryptoStream where when you want to read N
                         // bytes into a buffer, it just quits after reading between 1 and N bytes. It looks like they had to add a "ReadExactly" method
                         // if you want to actually read exactly N bytes. Brilliant.
                         cStream.ReadExactly(origNameBytes, 0, origNameSize);
@@ -102,28 +102,36 @@ internal class CryptHandler : IDisposable
             {
                 Console.Write("failed. Reason: ");
                 Console.WriteLine(e.Message);
-                if(outFileName != "" && File.Exists(outFileName)) File.Delete(outFileName); 
+                if (File.Exists(outFileName)) File.Delete(outFileName);
             }
         }
     }
 
     public void Encrypt(string[] files, bool deleteOnFinish = false, bool obfuscateNames = false)
     {
+        if (files.Length == 0) return;
         Span<byte> zeroFill = stackalloc byte[8];
         zeroFill.Clear(); // Not actually sure if this is necessary but it never hurts to be sure.
         foreach (string file in files)
         {
             if (!File.Exists(file))
             {
-                Console.WriteLine($"Cannot find file {file}");
+                Console.WriteLine($"Cannot find file {file}...");
                 continue;
             }
 
-            Console.Write($"Processing {file}... ");
+            Console.Write($"Encrypting {file}... ");
 
             CryptAlgorithmInstance.GenerateIV();
 
-            string outFileName = obfuscateNames ? $"{GenerateRandomString(12)}.vbcr" : $"{file}.vbcr";
+            string outFileName = $"{file}.vbcr";
+            if (obfuscateNames)
+            {
+                do
+                {
+                    outFileName = $"{GenerateRandomString(12)}.vbcr";
+                } while (File.Exists(outFileName)); // Handling the extremely low odds of a name collision.
+            }
             byte[] oldNameBytes = obfuscateNames ? Encoding.UTF8.GetBytes(Path.GetFileName(file)) : Array.Empty<byte>();
             byte[] sizeOfBytes = BitConverter.GetBytes(oldNameBytes.Length);
 

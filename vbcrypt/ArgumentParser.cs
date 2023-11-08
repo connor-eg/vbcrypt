@@ -1,73 +1,105 @@
-﻿namespace vbcrypt
+﻿using System.Runtime.CompilerServices;
+
+namespace vbcrypt
 {
     internal class ArgumentParser
     {
-        public static Dictionary<string, Argument> Parse(string[] input)
+        private enum ExpectingState { FLAG, ENCRYPT_FILE, DECRYPT_FILE }
+        private const string HelpText = """
+            Program usage:
+                vbcrypt [options...]
+                Arguments:
+                Options:
+                    -?, --help        Display this help text and do no further processing.
+                    -e file, --encrypt file     Encrypt the specified file (can be used multiple times)
+                    -d file, --decrypt file     Decrypt the specified file (can be used multiple times)
+
+                Other run-modifying options:
+                    -x, --delete      Delete the original files after each operation
+                    -o, --obfuscate   Encrypt the original files' names (meaningful for encryption only)
+                    --pw-no-confirm   Skip confirming your encryption/decryption password (not generally recommended)
+                    -n, --pw-no-hide  Do not hide your password on input (also disables confirmation)
+
+                Example (encrypting cat.png and decrypting secret.txt.vbcr with delete and obfuscate mode on):
+                    vbcrypt -x --obfuscate -e cat.png -d secret.txt.vbcr
+            """;
+
+        public static Dictionary<string, Argument> Parse(string[] args)
         {
             Dictionary<string, Argument> map = new();
-            if (input.Length < 2)
+            if (args.Length == 0)
             {
-                throw new ParseException("""
-                    Program usage:
-                      vbcrypt [options] <run mode> <files>
-                      Arguments:
-                        Options:
-                          -d, --delete      Delete the original files after each operation
-                          -o, --obscure     Encrypt the original files' names (meaningful for encryption only)
-                        Run modes:
-                          -E, --encrypt     This program run will encrypt files.
-                          -D, --decrypt     This program run will decrypt files.
-
-                        files (<file[,file,...]>)   The file/files to encrypt/decrypt. Requires at least one argument.
-                                                    Directories are not valid files. If you need to encrypt a directory,
-                                                      consider compressing it into a single file first.
-                    """);
+                throw new ParseException(HelpText);
             }
 
-            // Start reading arguments until we hit the run mode (this gathers options)
-            int argnbr = 0;
-            do
+            ExpectingState state = ExpectingState.FLAG; // What we are expecting to see next
+
+            // Start reading arguments
+            Argument encryptArg = new();
+            Argument decryptArg = new();
+
+            foreach(var arg in args)
             {
-                string arg = input[argnbr++];
-                switch (arg)
+                switch(state)
                 {
-                    case "-d":
-                    case "--delete":
-                        map.Add("delete", new Argument()); // Still internally debating on whether this should be nullable for options. It likely doesn't matter.
+                    case ExpectingState.FLAG:
+                        switch (arg)
+                        {
+                            case "-?":
+                            case "--help":
+                                throw new ParseException(HelpText);
+                            case "-e":
+                            case "--encrypt":
+                                state = ExpectingState.ENCRYPT_FILE;
+                                break;
+                            case "-d":
+                            case "--decrypt":
+                                state = ExpectingState.DECRYPT_FILE;
+                                break;
+                            case "-x":
+                            case "--delete":
+                                map.TryAdd("delete", new Argument());
+                                break;
+                            case "-o":
+                            case "--obfuscate":
+                                map.TryAdd("obfuscate", new Argument());
+                                break;
+                            case "--pw-no-confirm":
+                                map.TryAdd("pwNoConfirm", new Argument());
+                                break;
+                            case "-n":
+                            case "--pw-no-hide":
+                                map.TryAdd("pwNoHide", new Argument());
+                                break;
+                            default:
+                                throw new ParseException($"The option {arg} is not valid. Run with --help to see all valid options.");
+                        }
                         break;
-                    case "-o":
-                    case "--obscure":
-                        map.Add("obscure", new Argument());
+                    case ExpectingState.ENCRYPT_FILE:
+                        encryptArg.Add(arg);
+                        state = ExpectingState.FLAG;
                         break;
-                    case "-E":
-                    case "--encrypt":
-                        map.Add("mode", new Argument().Add("e"));
-                        break;
-                    case "-D":
-                    case "--decrypt":
-                        map.Add("mode", new Argument().Add("d"));
+                    case ExpectingState.DECRYPT_FILE:
+                        decryptArg.Add(arg);
+                        state = ExpectingState.FLAG;
                         break;
                     default:
-                        throw new ParseException($"The option {arg} is not valid. Run with no arguments to see all valid options.");
+                        throw new ParseException("THIS TEXT SHOULD NEVER APPEAR.");
                 }
-            } while (argnbr < input.Length && !map.ContainsKey("mode"));
-
-            // Check if the user has actually specified any run mode.
-            if (!map.ContainsKey("mode"))
-            {
-                throw new ParseException("This program requires a run mode. Run with no arguments to see the valid run modes.");
             }
 
-            // The remaining arguments all point to files.
-            Argument filearg = new();
-            while (argnbr < input.Length)
+            map.Add("toEncrypt", encryptArg);
+            map.Add("toDecrypt", decryptArg);
+
+            if(state != ExpectingState.FLAG) // The last thing in args was -e or -d.
             {
-                filearg.Add(input[argnbr++]);
+                throw new ParseException("You have specified -e or -d without a file. Try running with --help");
             }
 
-            if (filearg.Count == 0) throw new ParseException("You must specify at least one file to operate on. Run with no arguments to see a valid program run.");
-
-            map.Add("files", filearg);
+            if(encryptArg.Count == 0 && decryptArg.Count == 0) // The user never specified
+            {
+                throw new ParseException("This program requires a run mode. Try running with --help");
+            }
 
             return map;
         }
