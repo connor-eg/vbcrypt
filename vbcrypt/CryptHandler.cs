@@ -1,5 +1,4 @@
-﻿using System.Buffers.Text;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 internal class CryptHandler : IDisposable
@@ -17,6 +16,14 @@ internal class CryptHandler : IDisposable
 
     // This class is meant to be managed by the using keyword.
     public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        CryptAlgorithmInstance.Clear();
+        HashAlgorithmInstance.Clear();
+    }
+
+    // Hanles improper handling of this class
+    ~CryptHandler()
     {
         CryptAlgorithmInstance.Clear();
         HashAlgorithmInstance.Clear();
@@ -40,7 +47,7 @@ internal class CryptHandler : IDisposable
 
             Console.Write($"Decrypting {file}... ");
 
-            bool usingTerseName = file.EndsWith(".vbcr"); // No harm in doing this check early.
+            bool usingTerseName = file.EndsWith(".vbcr"); // This is called "terse name" when really it should be called "correct extension."
             string outFileName = ""; // This has to be way out here for error handling later.
 
             try
