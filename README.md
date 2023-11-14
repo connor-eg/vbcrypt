@@ -17,7 +17,7 @@ That said, it does look like it works so far. Check the releases panel for execu
 
 # Planned features (viability of features and my willingness to implement them TBD)
 - Allow the encryption of whole directories by automatically compressing them into a .zip file and encrypting that.
-- Build a whole GUI for this in .NET MAUI (in a new repository)
+- ~~Build a whole GUI for this in .NET MAUI (in a new repository)~~ I am awesome and did this. https://github.com/connor-eg/vbcrypt-maui
 
 # How to use
 Download the loose files in the releases (the non-zipped stuff), place them in a directory together, and invoke `vbcrypt.exe` with your favorite command line.
